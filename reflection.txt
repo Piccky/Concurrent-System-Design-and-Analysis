@@ -1,0 +1,33 @@
+@Author Jinxin Hu 963171
+
+1. Implementation:
+
+I created 4 additional java file according to the assignment specification, which are “KingArthur.java”, “Knight.java”, “Hall.java”, and “Agenda.java”. The responsibilities of each java file are as following:
+
+“KingArthur.java” : control king Arthur thread calling functions in the sequence: enter → start meeting → end meeting → exit → enter → …
+
+“Knight.java” : control knight thread calling functions in the sequence: enter → sit → release → acquire → stand → exit → set off → complete quest → enter → …
+
+“Hall.java” : monitor the enter/exit of king Arthur and knights, monitor the meeting start/end.
+
+“Agenda.java” : monitor the change of new agenda and complete agenda.
+
+More information of the implementation details are stated in the source code as annotation.
+
+2. Evaluation:
+
+The simulator I implemented generally covers all requirements stated in the assignment specification as well as those points discussed in the discussion board on LMS. Also, the simulator can run smoothly without exceptions.
+
+3. Critical design decisions or problems:
+
+At first, I created a simulator with all functions for knights and king Arthur implemented in their own class and implemented independent synchronized functions in the hall and agenda class to control the sequences for king Arthur and knights.
+
+However, I found it is quite difficult to make sure that logical locks are correct as I wanted. In this way, I decided to implement most functions in the monitor sides instead of threads classes themselves. By combining all similar functions for king Arthur and knights with specifying unique lock conditions and identify conditions, I finally implement the final version as submitted.
+
+4. Insight from experimenting with the simulator (Issues and solutions):
+
+For the issue that king Arthur enters the great hall when there is no knights inside, I added additional conditions to judge that once king Arthur enters the great hall with only himself inside, he will start meeting, end the meeting, and then exit the great hall as discussion board discussed.
+
+In order to observe various behaviour of king Arthur entering the great hall, I split the king waiting time into two part, with half random waiting time before entering the great hall at his first enter.
+
+For another issue that king Arthur may come back to the great hall when there are knights stuck in the great hall with uncompleted quest from previous meeting, I design a logic that no one can enter the great hall until everyone from the last meeting exits the great hall, which is regarded as the end of the meeting. This logic design comes from the common sense that we normally enter the meeting room when all people in the last meeting exit the meeting room. 

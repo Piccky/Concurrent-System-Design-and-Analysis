@@ -1,0 +1,40 @@
+/**
+ * Discussion on MCSS Assignment 1b
+ * @Author Jinxin Hu
+ * @Student No 963171
+ */
+
+There is actually a potential deadlock finding in my original model, which may
+occur under the situation that king Arthur enters the greathall when there is
+still some knights with uncompleted assigned quests from previous meeting
+staying in the greathall. The model can work relatively smoothly in other scenarios.
+
+The problem was also found in the java implementation that may cause a deadlock.
+
+If I do not pick this problem up before the Part 1a, there would be a buried
+deadlock that may not occur in regular testing processes. However, I did found that 
+potential deadlock situation in the Part 1a and I solve the problem by adding an 
+additional assumption that king Arthur is not allowed to enter the greathall before 
+all knights from the last meeting leaving the greathall.
+
+However, in my modified model, I just made another assumption instead of the previous 
+one in the Part 1a, which is that all knights with uncompleted assigned quests from 
+previous meeting can leave the greathall even if the king Arthur enters the greathall. 
+At the same time, king Arthur is not allowed to start a new meeting before all these 
+knights from last meeting leaving the greathall. In this way, the potential deadlock 
+situation can also be avoided. That is, there are many ways to solve the potential 
+deadlock problem with different assumptions. And the reason for the solution is to 
+give a way to break the deadlock to make it work smoothly.
+
+In terms of trade-offs in system performance, it did not affect the system performance 
+somehow as it only requires an additional independent condition to identify the status 
+of the knights in the greathall rather than doing nothing to the problem as the 
+original model. The system needs to iterate all knights to know whether these knights 
+with uncompleted assigned quests leaving or not. In this way, the complexity of the 
+additional computation is for O(n), which is not larger than the system itself.
+
+I convinced that my Part 1a submission is without any problems for that kind of deadlock 
+I mentioned above with the first assumption implemented to avoid that situation. However, 
+if I did not find problems with my original implementation, including those about safety 
+and liveness, I will believe that my work in the Part 1a is correct but still confused 
+for that potential deadlock solved with an additional assumption.

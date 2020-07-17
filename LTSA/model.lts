@@ -1,0 +1,152 @@
+/**
+ * Model for the greathall meeting, assignment 1b
+ * @Author Jinxin Hu
+ * @Student No 963171
+ */
+
+/**
+ * Define constants
+ */
+const KNIGHTNUM = 2
+const MAXQUESTNUM = 2
+const FALSE = 0
+const TRUE = 1
+
+/**
+ * Define ranges
+ */ 
+range Bool = FALSE..TRUE
+range Quests = 0..MAXQUESTNUM
+range Knights = 1..KNIGHTNUM
+
+/**
+ * AGENDA_NEW holds quests when PRODUCER creates new requests, till MAXQUESTNUM.
+ */
+AGENDA_NEW(N=MAXQUESTNUM) = NEWQUESTS[0],
+NEWQUESTS[i:Quests] 
+	= ( when (i<N) generate_new_quest -> NEWQUESTS[i+1]
+      | when (i>0) acquire_quest -> NEWQUESTS[i-1]).
+
+/**
+ * AGENDA_COMPLETE holds the quests when KNIGHTS release quests, till MAXQUESTNUM.
+ */
+AGENDA_COMPLETE(C=MAXQUESTNUM) = COMPLETEDQUESTS[0],
+COMPLETEDQUESTS[i:Quests] 
+	= ( when (i<C) release_quest -> COMPLETEDQUESTS[i+1]
+	  | when (i>0) remove_complete_quest -> COMPLETEDQUESTS[i-1]).
+
+/**
+ * GREATHALL_CONTROLLER is used to monitor behaviors of king Arthur and knights 
+ * by 4 params: king, meeting, knights, and seatednum.
+ * If king is TRUE, it means king in the Greathall, ortherwise he not;
+ * If meeting is TRUE, it means the meeting is being held at the moment,
+ * ortherwise it not;
+ * The knights represents the number of knights in the Greathall;
+ * The seatednum represents the number of seated knights in the Greathall;
+ *
+ * With these four params defined above, the behaviors of king Arthur and knights
+ * can be monitored through giving different conditions.
+ */
+GREATHALL_CONTROLLER = GREATHALL[FALSE][FALSE][0][0],
+GREATHALL[king:Bool][meeting:Bool][knights:0..KNIGHTNUM][seatednum:0..KNIGHTNUM]
+	= ( when (king == FALSE && knights < KNIGHTNUM)
+		enter -> GREATHALL[king][meeting][knights + 1][seatednum]
+	  | when (meeting == FALSE && seatednum < knights) 
+		sit -> GREATHALL[king][meeting][knights][seatednum + 1]
+	  | when (king == FALSE ) 
+	    kingenter ->GREATHALL[TRUE][meeting][knights][seatednum]
+	  | when (meeting == TRUE) 
+	  	acquire_quest -> GREATHALL[king][meeting][knights][seatednum]
+	  | when (meeting == TRUE) 
+	  	release_quest -> GREATHALL[king][meeting][knights][seatednum]
+	  | when (king == TRUE && knights == seatednum) 
+	  	startmeeting -> GREATHALL[king][TRUE][knights][seatednum]
+	  | when (meeting == TRUE && seatednum > 0) 
+	  	stand -> GREATHALL[king][meeting][knights][seatednum - 1]
+	  | when (meeting == TRUE && seatednum == 0) 
+	  	endmeeting -> kingleave -> GREATHALL[FALSE][FALSE][knights][seatednum]
+	  | when (king == FALSE && meeting == FALSE && knights > 0) 
+	  	leave -> GREATHALL[king][meeting][knights - 1][seatednum]).
+
+/**
+ * PRODUCER produces new quests to AGENDA_NEW.
+ */
+PRODUCER = (generate_new_quest -> PRODUCER).
+
+/**
+ * CONSUMER consumes quests from AGENDA_COMPLETE.
+ */
+CONSUMER = (remove_complete_quest -> CONSUMER).
+
+/**
+ * KNIGHT indicates the behavior flow of a knight, which has two different way
+ * because for the first time, a knight cannot release a quest. He needs to 
+ * acquire a new quest first and release that quest in the next meeting he attends.
+ */
+KNIGHT= KNIGHT[FALSE],
+KNIGHT[quest:Bool]
+	= ( when (quest == FALSE) enter -> mingling -> sit -> acquire_quest ->
+	    stand -> mingling -> leave -> set_off_to_complete_quest -> 
+	    complete_quest -> KNIGHT[TRUE] 
+	  | when (quest == TRUE) enter -> mingling -> sit -> release_quest -> 
+	    acquire_quest -> stand -> mingling -> leave ->
+		set_off_to_complete_quest -> complete_quest -> KNIGHT[TRUE]).
+
+/**
+ * KING indicates the behavior flow of the king Arthur.
+ */
+KING = (kingenter -> startmeeting -> endmeeting -> kingleave -> KING).
+
+// Safety check for king Arthur's enter and leave actions.
+property SAFE_KING_ENTER
+	= (kingenter -> kingleave -> SAFE_KING_ENTER).
+
+// Safety check for king Arthur's startmeeting and endmeeting actions.
+property SAFE_KING_MEETING
+	= (startmeeting -> endmeeting -> SAFE_KING_MEETING).
+
+// Safety check for knights' enter and leave actions.
+property SAFE_KNIGHT_ENTER
+	= (enter -> leave -> SAFE_KNIGHT_ENTER).
+
+// Safety check for knights' sit and stand actions.
+property SAFE_KNIGHT_MEETING
+	= (sit -> stand -> SAFE_KNIGHT_MEETING).
+
+// Safety check for knights' quest-related actions.
+property SAFE_KNIGHT_QUEST
+	= (acquire_quest -> set_off_to_complete_quest ->
+	   complete_quest -> release_quest -> SAFE_KNIGHT_QUEST).
+
+// Check the liveness of all knight's actions
+progress KNIGHT_MEETING[i:Knights]
+	= { knight[i].enter,
+		knight[i].mingling,
+		knight[i].sit,
+		knight[i].acquire_quest,
+		knight[i].stand,
+		knight[i].leave,
+		knight[i].set_off_to_complete_quest,
+		knight[i].complete_quest}
+
+// Check the liveness of king Arthur's actions
+progress KING_MEETING
+	= { kingenter,
+		startmeeting,
+		endmeeting,
+		kingleave}
+
+// Concurrent model for the greathall meeting
+||GREATHALLMEETING = ( PRODUCER || CONSUMER || AGENDA_NEW || AGENDA_COMPLETE ||
+  KING || GREATHALL_CONTROLLER ||knight[Knights]:KNIGHT)/{
+	knight[Knights].enter/enter,  
+	knight[Knights].sit/sit,
+	knight[Knights].acquire_quest/acquire_quest,
+	knight[Knights].stand/stand,
+	knight[Knights].leave/leave,
+	knight[Knights].release_quest/release_quest}.
+
+// Safety check model
+||SAFETYMEETING = (GREATHALLMEETING || SAFE_KING_ENTER || SAFE_KING_MEETING || 
+  knight[Knights]:SAFE_KNIGHT_ENTER || knight[Knights]:SAFE_KNIGHT_MEETING || 
+  knight[Knights]:SAFE_KNIGHT_QUEST).
